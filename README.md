@@ -35,7 +35,7 @@ Note that there is no authentication
 
 * Pairing to the device is not required
 * When pairing no pin is required
-* The "bind" command is a convenience function - i.e. the fridge still accepts commands even if the "bond" command has never been issued or acknowledged
+* The "bind" command is a convenience function - i.e. the fridge still accepts commands even if the "bind" command has never been issued or acknowledged
 
 Connecting to the BLE device locks out all other clients and disables BLE advertisements until the client disconnects (though it does seem to show up after a while on the next bluetooth address as a bluetooth headset `JR-bluetooth`)
 
