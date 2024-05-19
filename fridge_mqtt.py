@@ -6,15 +6,20 @@ import logging
 import sys
 
 from typing import Optional
-from fridge import Fridge, FridgeData
 import paho.mqtt.client as mqtt
+
+from fridge import Fridge, FridgeData
 
 
 def publish_offline(mqttc: mqtt.Client, addr: str):
     mqttc.publish(f"fridge/{addr}/online", False)
 
 
-def publish_status(mqttc: mqtt.Client, addr: str, data: FridgeData, previous_data: Optional[FridgeData]):
+def publish_status(mqttc: mqtt.Client,
+                   addr: str,
+                   data: FridgeData,
+                   previous_data: Optional[FridgeData]
+                  ):
     if previous_data is None:
         mqttc.publish(f"fridge/{addr}/online", True)
 
@@ -24,7 +29,13 @@ def publish_status(mqttc: mqtt.Client, addr: str, data: FridgeData, previous_dat
         mqttc.publish(f'fridge/{addr}/state', info)
 
 
-async def run(addr: str, bind: bool, poll: bool, pollinterval: int, mqttc: mqtt.Client):
+async def run(addr: str,
+              bind: bool,
+              poll: bool,
+              pollinterval: int,
+              mqttc: mqtt.Client
+             ):
+    # pylint: disable=R0801
     async with Fridge(addr) as fridge:
         if bind:
             await asyncio.wait_for(fridge.bind(), 30)
@@ -52,6 +63,7 @@ async def run(addr: str, bind: bool, poll: bool, pollinterval: int, mqttc: mqtt.
 
 
 def main():
+    # pylint: disable=R0801
     parser = argparse.ArgumentParser(
         prog='fridge_mqtt.py',
         description='Fridge monitor for Alpicool / Brass Monkey fridges'
