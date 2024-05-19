@@ -20,17 +20,18 @@ from bleak.backends.device import BLEDevice
 from bleak.backends.characteristic import BleakGATTCharacteristic
 
 
-service_uid = '1234'
-service_uuid = '00001234-0000-1000-8000-00805f9b34fb'
-command_uid = '1235'
-command_uuid = '00001235-0000-1000-8000-00805f9b34fb'
-notify_uid = '1236'
-notify_uuid = '00001236-0000-1000-8000-00805f9b34fb'
+SERVICE_UID = '1234'
+SERVICE_UUID = '00001234-0000-1000-8000-00805f9b34fb'
+COMMAND_UID = '1235'
+COMMAND_UUID = '00001235-0000-1000-8000-00805f9b34fb'
+NOTIFY_UID = '1236'
+NOTIFY_UUID = '00001236-0000-1000-8000-00805f9b34fb'
 
 logger = logging.getLogger(__name__)
 
 
 class FridgeCommand(int, Enum):
+    # pylint: disable=invalid-name
     Bind = 0
     Query = 1
     Set = 2
@@ -40,23 +41,27 @@ class FridgeCommand(int, Enum):
 
 
 class FridgeRunMode(int, Enum):
+    # pylint: disable=invalid-name
     Max = 0
     Eco = 1
 
 
 class FridgeBatterySaver(int, Enum):
+    # pylint: disable=invalid-name
     Low = 0
     Mid = 1
     High = 2
 
 
 class FridgeTemperatureUnit(int, Enum):
+    # pylint: disable=invalid-name
     Celsius = 0
     Farenheit = 1
 
 
 @dataclass
-class FridgeUnitData(object):
+class FridgeUnitData:
+    # pylint: disable=too-many-instance-attributes
     target_temperature: int
     hysteresis: int
     temperature_correction_hot: int
@@ -67,7 +72,8 @@ class FridgeUnitData(object):
 
 
 @dataclass
-class FridgeData(object):
+class FridgeData:
+    # pylint: disable=too-many-instance-attributes
     controls_locked: bool
     powered_on: bool
     run_mode: FridgeRunMode
@@ -124,7 +130,7 @@ def decode_unit2_data(data: Union[bytes, bytearray]) -> Optional[FridgeUnitData]
 
 def decode_fridge_data(data: Union[bytes, bytearray]) -> FridgeData:
     if len(data) < 18:
-        raise Exception('Packet too short')
+        raise ValueError('Packet too short')
 
     controls_locked, powered_on, run_mode, battery_saver, \
     max_selectable_temperature, min_selectable_temperature, \
@@ -164,20 +170,20 @@ def create_packet(data: bytes) -> bytes:
 
 def get_packet_data(data: bytes) -> bytes:
     if len(data) <= 2:
-        raise Exception('Packet is too small')
+        raise ValueError('Packet is too small')
 
     if data[:2] != b'\xFE\xFE':
-        raise Exception('Invalid frame header')
+        raise ValueError('Invalid frame header')
 
     pktlen = struct.unpack_from('B', data, 2)[0]
 
     if pktlen != len(data) - 3:
-        raise Exception('Content length does not match')
+        raise ValueError('Content length does not match')
 
     csum = struct.unpack_from('>H', data[-2:])[0]
 
     if csum != sum(int(v) for v in data[:-2]):
-        raise Exception('Invalid checksum')
+        raise ValueError('Invalid checksum')
 
     return data[3:-2]
 
@@ -191,6 +197,7 @@ def encode_query_command() -> bytes:
 
 
 def encode_set_command(data: FridgeData) -> bytes:
+    # pylint: disable=no-else-return
     if data.unit2 is None:
         return create_packet(struct.pack(
             '>??BBbbbbBBbbbb',
@@ -230,7 +237,8 @@ def encode_set_unit2_target_command(temp: int) -> bytes:
     return create_packet(struct.pack('Bb', FridgeCommand.SetUnit2Target, temp))
 
 
-class Fridge(object):
+class Fridge:
+    # pylint: disable=too-many-instance-attributes
     on_query_response: Optional[Callable[[FridgeData], Any]] = None
 
     command_characteristic: Optional[BleakGATTCharacteristic] = None
@@ -251,7 +259,7 @@ class Fridge(object):
             self.client = BleakClient(client)
 
     async def connect(self):
-        for retrynum in range(0, 2):
+        for _ in range(0, 2):
             try:
                 await self.client.connect()
                 break
@@ -265,16 +273,16 @@ class Fridge(object):
         else:
             await self.client.connect()
 
-        for h, c in self.client.services.characteristics.items():
-            if c.service_uuid == service_uid or c.service_uuid == service_uuid:
-                if c.uuid == command_uid or c.uuid == command_uuid:
+        for _, c in self.client.services.characteristics.items():
+            if c.service_uuid in (SERVICE_UID, SERVICE_UUID):
+                if c.uuid in (COMMAND_UID, COMMAND_UUID):
                     self.command_characteristic = c
-                elif c.uuid == notify_uid or c.uuid == notify_uuid:
+                elif c.uuid in (NOTIFY_UID, NOTIFY_UUID):
                     self.notify_characteristic = c
 
         if self.command_characteristic is None or self.notify_characteristic is None:
             self.disconnect()
-            raise Exception('Required GATT characteristics not found')
+            raise ValueError('Required GATT characteristics not found')
 
         await self.client.start_notify(self.notify_characteristic, self._notify_callback)
 
@@ -289,6 +297,7 @@ class Fridge(object):
         await self.disconnect()
 
     def _notify_callback(self, sender: BleakGATTCharacteristic, pkt: bytearray):
+        # pylint: disable=unused-argument
         data = get_packet_data(pkt)
 
         if len(data) < 2:
@@ -297,106 +306,106 @@ class Fridge(object):
         cmd = struct.unpack_from('B', data, 0)[0]
 
         if cmd == FridgeCommand.Bind:
-            self.notify_bind(struct.unpack_from('B', data, 1)[0])
+            self._notify_bind(struct.unpack_from('B', data, 1)[0])
         elif cmd == FridgeCommand.Query:
-            self.notify_query(decode_fridge_data(data[1:]))
+            self._notify_query(decode_fridge_data(data[1:]))
         elif cmd == FridgeCommand.Set:
-            self.notify_set(decode_fridge_data(data[1:]))
+            self._notify_set(decode_fridge_data(data[1:]))
         elif cmd == FridgeCommand.Reset:
-            self.notify_reset(decode_fridge_data(data[1:]))
+            self._notify_reset(decode_fridge_data(data[1:]))
         elif cmd == FridgeCommand.SetUnit1Target:
-            self.notify_set_unit1_target_temperature(struct.unpack_from('b', data, 1)[0])
+            self._notify_set_unit1_target_temperature(struct.unpack_from('b', data, 1)[0])
         elif cmd == FridgeCommand.SetUnit2Target:
-            self.notify_set_unit2_target_temperature(struct.unpack_from('b', data, 1)[0])
+            self._notify_set_unit2_target_temperature(struct.unpack_from('b', data, 1)[0])
 
-    def notify_bind(self, data: int):
+    def _notify_bind(self, data: int):
         if isinstance(self._bind_result_future, Future):
             self._bind_result_future.set_result(data)
 
-    def notify_query(self, data: FridgeData):
+    def _notify_query(self, data: FridgeData):
         if self.on_query_response is not None:
             self.on_query_response(data)
 
         if isinstance(self._query_result_future, Future):
             self._query_result_future.set_result(data)
 
-    def notify_set(self, data: FridgeData):
+    def _notify_set(self, data: FridgeData):
         if isinstance(self._set_result_future, Future):
             self._set_result_future.set_result(data)
 
-    def notify_reset(self, data: FridgeData):
+    def _notify_reset(self, data: FridgeData):
         if isinstance(self._reset_result_future, Future):
             self._reset_result_future.set_result(data)
 
-    def notify_set_unit1_target_temperature(self, data: int):
+    def _notify_set_unit1_target_temperature(self, data: int):
         if isinstance(self._set_unit1_result_future, Future):
             self._set_unit1_result_future.set_result(data)
 
-    def notify_set_unit2_target_temperature(self, data: int):
+    def _notify_set_unit2_target_temperature(self, data: int):
         if isinstance(self._set_unit2_result_future, Future):
             self._set_unit2_result_future.set_result(data)
 
-    async def send_command(self, pkt: bytes):
+    async def _send_command(self, pkt: bytes):
         await self.client.write_gatt_char(self.command_characteristic, pkt, response = True)
 
-    async def send_bind_command(self):
+    async def _send_bind_command(self):
         pkt = encode_bind_command()
-        await self.send_command(pkt)
+        await self._send_command(pkt)
 
-    async def send_query_command(self):
+    async def _send_query_command(self):
         pkt = encode_query_command()
-        await self.send_command(pkt)
+        await self._send_command(pkt)
 
-    async def send_set_command(self, data: FridgeData):
+    async def _send_set_command(self, data: FridgeData):
         pkt = encode_set_command(data)
-        await self.send_command(pkt)
+        await self._send_command(pkt)
 
-    async def send_reset_command(self):
+    async def _send_reset_command(self):
         pkt = encode_reset_command()
-        await self.send_command(pkt)
+        await self._send_command(pkt)
 
-    async def send_set_unit1_target_temperature_command(self, target_temperature: int):
+    async def _send_set_unit1_target_temperature_command(self, target_temperature: int):
         pkt = encode_set_unit1_target_command(target_temperature)
-        await self.send_command(pkt)
+        await self._send_command(pkt)
 
-    async def send_set_unit2_target_temperature_command(self, target_temperature: int):
+    async def _send_set_unit2_target_temperature_command(self, target_temperature: int):
         pkt = encode_set_unit2_target_command(target_temperature)
-        await self.send_command(pkt)
+        await self._send_command(pkt)
 
     async def bind(self) -> int:
         loop = asyncio.get_event_loop()
         self._bind_result_future = loop.create_future()
-        await self.send_bind_command()
+        await self._send_bind_command()
         return await self._bind_result_future
 
     async def query(self) -> FridgeData:
         loop = asyncio.get_event_loop()
         self._query_result_future = loop.create_future()
-        await self.send_query_command()
+        await self._send_query_command()
         return await self._query_result_future
 
     async def set(self, data: FridgeData) -> FridgeData:
         loop = asyncio.get_event_loop()
         self._set_result_future = loop.create_future()
-        await self.send_set_command(data)
+        await self._send_set_command(data)
         return await self._set_result_future
 
     async def reset(self) -> FridgeData:
         loop = asyncio.get_event_loop()
         self._reset_result_future = loop.create_future()
-        await self.send_reset_command()
+        await self._send_reset_command()
         return await self._reset_result_future
 
     async def set_unit1_target_temperature(self, target_temperature: int) -> int:
         loop = asyncio.get_event_loop()
         self._set_unit1_result_future = loop.create_future()
-        await self.send_set_unit1_target_temperature_command(target_temperature)
+        await self._send_set_unit1_target_temperature_command(target_temperature)
         return await self._set_unit1_result_future
 
     async def set_unit2_target_temperature(self, target_temperature: int) -> int:
         loop = asyncio.get_event_loop()
         self._set_unit2_result_future = loop.create_future()
-        await self.send_set_unit2_target_temperature_command(target_temperature)
+        await self._send_set_unit2_target_temperature_command(target_temperature)
         return await self._set_unit2_result_future
 
 
@@ -417,7 +426,7 @@ def print_fridge_data(data: FridgeData):
             'temperature': data.unit1.current_temperature,
             'target': data.unit1.target_temperature
         }
-    
+
     if data.unit2 is not None:
         info['units']['2'] = {
             'temperature': data.unit2.current_temperature,
@@ -454,10 +463,29 @@ def main():
         description='Fridge monitor for Alpicool / Brass Monkey fridges'
     )
 
-    parser.add_argument('address', help='Bluetooth address of fridge')
-    parser.add_argument('-b', '--bind', action='store_true', help='Press settings button on fridge to confirm fridge selection')
-    parser.add_argument('-l', '--loop', action='store_true', help='Poll at regular intervals (default: query once)')
-    parser.add_argument('-t', '--pollinterval', type = int, default=10, help='Poll interval in seconds (default: 10)')
+    parser.add_argument(
+        'address',
+        help='Bluetooth address of fridge'
+    )
+    parser.add_argument(
+        '-b',
+        '--bind',
+        action='store_true',
+        help='Press settings button on fridge to confirm fridge selection'
+    )
+    parser.add_argument(
+        '-l',
+        '--loop',
+        action='store_true',
+        help='Poll at regular intervals (default: query once)'
+    )
+    parser.add_argument(
+        '-t',
+        '--pollinterval',
+        type = int,
+        default=10,
+        help='Poll interval in seconds (default: 10)'
+    )
 
     args = parser.parse_args()
 
@@ -467,8 +495,7 @@ def main():
         asyncio.run(run(args.address, args.bind, args.loop, args.pollinterval))
     except KeyboardInterrupt:
         sys.stderr.write('Exiting\n')
-        return
+
 
 if __name__ == '__main__':
     main()
-
