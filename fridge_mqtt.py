@@ -53,7 +53,7 @@ async def run(addr: str, bind: bool, poll: bool, pollinterval: int, mqttc: mqtt.
 
 def main():
     parser = argparse.ArgumentParser(
-        prog='fridge-mqtt.py',
+        prog='fridge_mqtt.py',
         description='Fridge monitor for Alpicool / Brass Monkey fridges'
     )
 
