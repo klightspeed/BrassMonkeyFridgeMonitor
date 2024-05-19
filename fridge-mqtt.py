@@ -5,9 +5,9 @@ import argparse
 import logging
 import sys
 
-import paho.mqtt.client as mqtt
-from fridge import Fridge, FridgeData
 from typing import Optional
+from fridge import Fridge, FridgeData
+import paho.mqtt.client as mqtt
 
 
 def publish_offline(mqttc: mqtt.Client, addr: str):
