@@ -231,7 +231,7 @@ def encode_set_unit2_target_command(temp: int) -> bytes:
 
 
 class Fridge(object):
-    on_query_response: Callable[[FridgeData], Any] = None
+    on_query_response: Optional[Callable[[FridgeData], Any]] = None
 
     command_characteristic: Optional[BleakGATTCharacteristic] = None
     notify_characteristic: Optional[BleakGATTCharacteristic] = None
