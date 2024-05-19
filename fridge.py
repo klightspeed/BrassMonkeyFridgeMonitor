@@ -88,6 +88,33 @@ class FridgeData:
     unit1: FridgeUnitData
     unit2: Optional[FridgeUnitData]
 
+    def to_dict(self) -> dict:
+        info = {
+            'on': self.powered_on,
+            'runMode': self.run_mode.name,
+            'lowVoltageLevel': self.battery_saver.name,
+            'batteryVoltage': self.battery_voltage,
+            'batteryChargePercent': self.battery_charge_percent,
+            'temperatureUnit': self.temperature_unit.name,
+            'units': {
+            }
+        }
+
+        if self.unit1 is not None:
+            info['units']['1'] = {
+                'temperature': self.unit1.current_temperature,
+                'target': self.unit1.target_temperature
+            }
+
+        if self.unit2 is not None:
+            info['units']['2'] = {
+                'temperature': self.unit2.current_temperature,
+                'target': self.unit2.target_temperature
+            }
+
+        return info
+
+
 
 def decode_unit1_data(data: Union[bytes, bytearray]) -> FridgeUnitData:
     target_temperature, hysteresis, \
@@ -410,30 +437,7 @@ class Fridge:
 
 
 def print_fridge_data(data: FridgeData):
-    info = {
-        'on': data.powered_on,
-        'runMode': data.run_mode.name,
-        'lowVoltageLevel': data.battery_saver.name,
-        'batteryVoltage': data.battery_voltage,
-        'batteryChargePercent': data.battery_charge_percent,
-        'temperatureUnit': data.temperature_unit.name,
-        'units': {
-        }
-    }
-
-    if data.unit1 is not None:
-        info['units']['1'] = {
-            'temperature': data.unit1.current_temperature,
-            'target': data.unit1.target_temperature
-        }
-
-    if data.unit2 is not None:
-        info['units']['2'] = {
-            'temperature': data.unit2.current_temperature,
-            'target': data.unit2.target_temperature
-        }
-
-    print(json.dumps(info))
+    print(json.dumps(data.to_dict()))
 
 
 async def run(addr: str, bind: bool, poll: bool, pollinterval: int):

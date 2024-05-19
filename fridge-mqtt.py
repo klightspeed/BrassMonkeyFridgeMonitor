@@ -19,28 +19,7 @@ def publish_status(mqttc: mqtt.Client, addr: str, data: FridgeData, previous_dat
         mqttc.publish(f"fridge/{addr}/online", True)
 
     if previous_data is None or data != previous_data:
-        info = {
-            'on': data.powered_on,
-            'runMode': data.run_mode.name,
-            'lowVoltageLevel': data.battery_saver.name,
-            'batteryVoltage': data.battery_voltage,
-            'batteryChargePercent': data.battery_charge_percent,
-            'temperatureUnit': data.temperature_unit.name,
-            'units': {
-            }
-        }
-
-        if data.unit1 is not None:
-            info['units']['1'] = {
-                'temperature': data.unit1.current_temperature,
-                'target': data.unit1.target_temperature
-            }
-        
-        if data.unit2 is not None:
-            info['units']['2'] = {
-                'temperature': data.unit2.current_temperature,
-                'target': data.unit2.target_temperature
-            }
+        info = data.to_dict()
 
         mqttc.publish(f'fridge/{addr}/state', info)
 
