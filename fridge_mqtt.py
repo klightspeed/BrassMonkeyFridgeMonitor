@@ -108,6 +108,7 @@ def main():
         '-h',
         '--mqtt-host',
         type = str,
+        required=True,
         help='MQTT host name / ip address'
     )
     parser.add_argument(
