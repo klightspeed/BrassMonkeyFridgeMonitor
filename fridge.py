@@ -231,18 +231,18 @@ def encode_set_unit2_target_command(temp: int) -> bytes:
 
 
 class Fridge(object):
-    on_query_response: Callable[[FridgeData], Any]
+    on_query_response: Callable[[FridgeData], Any] = None
 
-    command_characteristic: Optional[BleakGATTCharacteristic]
-    notify_characteristic: Optional[BleakGATTCharacteristic]
-    client: BleakClient
+    command_characteristic: Optional[BleakGATTCharacteristic] = None
+    notify_characteristic: Optional[BleakGATTCharacteristic] = None
+    client: BleakClient = None
 
-    _bind_result_future: Optional[Future[int]]
-    _query_result_future: Optional[Future[FridgeData]]
-    _set_result_future: Optional[Future[FridgeData]]
-    _reset_result_future: Optional[Future[FridgeData]]
-    _set_unit1_result_future: Optional[Future[FridgeData]]
-    _set_unit2_result_future: Optional[Future[FridgeData]]
+    _bind_result_future: Optional[Future[int]] = None
+    _query_result_future: Optional[Future[FridgeData]] = None
+    _set_result_future: Optional[Future[FridgeData]] = None
+    _reset_result_future: Optional[Future[FridgeData]] = None
+    _set_unit1_result_future: Optional[Future[FridgeData]] = None
+    _set_unit2_result_future: Optional[Future[FridgeData]] = None
 
     def __init__(self, client: Union[BleakClient, BLEDevice, str]):
         if isinstance(client, BleakClient):
