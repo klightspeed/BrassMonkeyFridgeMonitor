@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 
+'''fridge.py
+
+Monitors an Alpicool compatible fridge
+'''
+
 import struct
 import asyncio
 import argparse
@@ -31,6 +36,7 @@ logger = logging.getLogger(__name__)
 
 
 class FridgeCommand(int, Enum):
+    '''Fridge command codes'''
     # pylint: disable=invalid-name
     Bind = 0
     Query = 1
@@ -41,12 +47,14 @@ class FridgeCommand(int, Enum):
 
 
 class FridgeRunMode(int, Enum):
+    '''Fridge run mode'''
     # pylint: disable=invalid-name
     Max = 0
     Eco = 1
 
 
 class FridgeBatterySaver(int, Enum):
+    '''Fridge low voltage cutout level'''
     # pylint: disable=invalid-name
     Low = 0
     Mid = 1
@@ -54,6 +62,7 @@ class FridgeBatterySaver(int, Enum):
 
 
 class FridgeTemperatureUnit(int, Enum):
+    '''Fridge temperature unit'''
     # pylint: disable=invalid-name
     Celsius = 0
     Farenheit = 1
@@ -61,6 +70,7 @@ class FridgeTemperatureUnit(int, Enum):
 
 @dataclass
 class FridgeUnitData:
+    '''Data for a single fridge unit'''
     # pylint: disable=too-many-instance-attributes
     target_temperature: int
     hysteresis: int
@@ -73,6 +83,7 @@ class FridgeUnitData:
 
 @dataclass
 class FridgeData:
+    '''Fridge data'''
     # pylint: disable=too-many-instance-attributes
     controls_locked: bool
     powered_on: bool
@@ -89,6 +100,7 @@ class FridgeData:
     unit2: Optional[FridgeUnitData]
 
     def to_dict(self) -> dict:
+        '''Converts fridge data to json dict'''
         info = {
             'on': self.powered_on,
             'runMode': self.run_mode.name,
@@ -117,6 +129,7 @@ class FridgeData:
 
 
 def decode_unit1_data(data: Union[bytes, bytearray]) -> FridgeUnitData:
+    '''Decode the data for unit 1 from packet data'''
     target_temperature, hysteresis, \
     temperature_correction_hot, temperature_correction_mid, \
     temperature_correction_cold, temperature_correction_halt, \
@@ -135,6 +148,7 @@ def decode_unit1_data(data: Union[bytes, bytearray]) -> FridgeUnitData:
 
 
 def decode_unit2_data(data: Union[bytes, bytearray]) -> Optional[FridgeUnitData]:
+    '''Decode the data for unit 2 from packet data'''
     if len(data) < 28:
         return None
 
@@ -156,6 +170,7 @@ def decode_unit2_data(data: Union[bytes, bytearray]) -> Optional[FridgeUnitData]
 
 
 def decode_fridge_data(data: Union[bytes, bytearray]) -> FridgeData:
+    '''Decode fridge data from packet data'''
     if len(data) < 18:
         raise ValueError('Packet too short')
 
@@ -190,12 +205,14 @@ def decode_fridge_data(data: Union[bytes, bytearray]) -> FridgeData:
 
 
 def create_packet(data: bytes) -> bytes:
+    '''Create a packet for sending to a fridge'''
     pkt = b'\xFE\xFE' + struct.pack('B', len(data) + 2) + data
     pkt += struct.pack('>H', sum(int(v) for v in pkt))
     return pkt
 
 
 def get_packet_data(data: bytes) -> bytes:
+    '''Extract the data from a packet'''
     if len(data) <= 2:
         raise ValueError('Packet is too small')
 
@@ -216,14 +233,17 @@ def get_packet_data(data: bytes) -> bytes:
 
 
 def encode_bind_command() -> bytes:
+    '''Encode a Bind command'''
     return create_packet(struct.pack('B', FridgeCommand.Bind))
 
 
 def encode_query_command() -> bytes:
+    '''Encode a Query command'''
     return create_packet(struct.pack('B', FridgeCommand.Query))
 
 
 def encode_set_command(data: FridgeData) -> bytes:
+    '''Encode a Set command'''
     # pylint: disable=no-else-return
     if data.unit2 is None:
         return create_packet(struct.pack(
@@ -253,18 +273,22 @@ def encode_set_command(data: FridgeData) -> bytes:
 
 
 def encode_reset_command() -> bytes:
+    '''Encode a Reset command'''
     return create_packet(struct.pack('B', FridgeCommand.Reset))
 
 
 def encode_set_unit1_target_command(temp: int) -> bytes:
+    '''Encode a Set Unit 1 Target Temperature command'''
     return create_packet(struct.pack('Bb', FridgeCommand.SetUnit1Target, temp))
 
 
 def encode_set_unit2_target_command(temp: int) -> bytes:
+    '''Encode a Set Unit 2 Target Temperature command'''
     return create_packet(struct.pack('Bb', FridgeCommand.SetUnit2Target, temp))
 
 
 class Fridge:
+    '''Fridge communication class'''
     # pylint: disable=too-many-instance-attributes
     on_query_response: Optional[Callable[[FridgeData], Any]] = None
 
@@ -286,6 +310,7 @@ class Fridge:
             self.client = BleakClient(client)
 
     async def connect(self):
+        '''Connect to the BLE fridge'''
         for _ in range(0, 2):
             try:
                 await self.client.connect()
@@ -314,6 +339,7 @@ class Fridge:
         await self.client.start_notify(self.notify_characteristic, self._notify_callback)
 
     async def disconnect(self):
+        '''Disconnect from the BLE fridge'''
         await self.client.disconnect()
 
     async def __aenter__(self):
@@ -324,6 +350,7 @@ class Fridge:
         await self.disconnect()
 
     def _notify_callback(self, sender: BleakGATTCharacteristic, pkt: bytearray):
+        '''Callback for BLE notify'''
         # pylint: disable=unused-argument
         data = get_packet_data(pkt)
 
@@ -346,10 +373,12 @@ class Fridge:
             self._notify_set_unit2_target_temperature(struct.unpack_from('b', data, 1)[0])
 
     def _notify_bind(self, data: int):
+        '''Callback for Bind response'''
         if isinstance(self._bind_result_future, Future):
             self._bind_result_future.set_result(data)
 
     def _notify_query(self, data: FridgeData):
+        '''Callback for Query response'''
         if self.on_query_response is not None:
             self.on_query_response(data)
 
@@ -357,79 +386,96 @@ class Fridge:
             self._query_result_future.set_result(data)
 
     def _notify_set(self, data: FridgeData):
+        '''Callback for Set response'''
         if isinstance(self._set_result_future, Future):
             self._set_result_future.set_result(data)
 
     def _notify_reset(self, data: FridgeData):
+        '''Callback for Reset response'''
         if isinstance(self._reset_result_future, Future):
             self._reset_result_future.set_result(data)
 
     def _notify_set_unit1_target_temperature(self, data: int):
+        '''Callback for Set Unit 1 Target Temperature response'''
         if isinstance(self._set_unit1_result_future, Future):
             self._set_unit1_result_future.set_result(data)
 
     def _notify_set_unit2_target_temperature(self, data: int):
+        '''Callback for Set Unit 2 Target Temperature response'''
         if isinstance(self._set_unit2_result_future, Future):
             self._set_unit2_result_future.set_result(data)
 
     async def _send_command(self, pkt: bytes):
+        '''Send a command to the BLE fridge'''
         await self.client.write_gatt_char(self.command_characteristic, pkt, response = True)
 
     async def _send_bind_command(self):
+        '''Send a Bind command'''
         pkt = encode_bind_command()
         await self._send_command(pkt)
 
     async def _send_query_command(self):
+        '''Send a Query command'''
         pkt = encode_query_command()
         await self._send_command(pkt)
 
     async def _send_set_command(self, data: FridgeData):
+        '''Send a Set command'''
         pkt = encode_set_command(data)
         await self._send_command(pkt)
 
     async def _send_reset_command(self):
+        '''Send a Reset command'''
         pkt = encode_reset_command()
         await self._send_command(pkt)
 
     async def _send_set_unit1_target_temperature_command(self, target_temperature: int):
+        '''Send a Set Unit 1 Target Temperature command'''
         pkt = encode_set_unit1_target_command(target_temperature)
         await self._send_command(pkt)
 
     async def _send_set_unit2_target_temperature_command(self, target_temperature: int):
+        '''Send a Set Unit 2 Target Temperature command'''
         pkt = encode_set_unit2_target_command(target_temperature)
         await self._send_command(pkt)
 
     async def bind(self) -> int:
+        '''Send a Bind command and await its response'''
         loop = asyncio.get_event_loop()
         self._bind_result_future = loop.create_future()
         await self._send_bind_command()
         return await self._bind_result_future
 
     async def query(self) -> FridgeData:
+        '''Send a Query command and await its response'''
         loop = asyncio.get_event_loop()
         self._query_result_future = loop.create_future()
         await self._send_query_command()
         return await self._query_result_future
 
     async def set(self, data: FridgeData) -> FridgeData:
+        '''Send a Set command and await its response'''
         loop = asyncio.get_event_loop()
         self._set_result_future = loop.create_future()
         await self._send_set_command(data)
         return await self._set_result_future
 
     async def reset(self) -> FridgeData:
+        '''Send a Reset command and await its response'''
         loop = asyncio.get_event_loop()
         self._reset_result_future = loop.create_future()
         await self._send_reset_command()
         return await self._reset_result_future
 
     async def set_unit1_target_temperature(self, target_temperature: int) -> int:
+        '''Send a Set Unit 1 Target Temperature command and await its response'''
         loop = asyncio.get_event_loop()
         self._set_unit1_result_future = loop.create_future()
         await self._send_set_unit1_target_temperature_command(target_temperature)
         return await self._set_unit1_result_future
 
     async def set_unit2_target_temperature(self, target_temperature: int) -> int:
+        '''Send a Set Unit 2 Target Temperature command and await its response'''
         loop = asyncio.get_event_loop()
         self._set_unit2_result_future = loop.create_future()
         await self._send_set_unit2_target_temperature_command(target_temperature)
@@ -437,10 +483,12 @@ class Fridge:
 
 
 def print_fridge_data(data: FridgeData):
+    '''Dump a JSON representation of the fridge data to standard output'''
     print(json.dumps(data.to_dict()))
 
 
 async def run(addr: str, bind: bool, poll: bool, pollinterval: int):
+    '''Run the write-notify loop'''
     async with Fridge(addr) as fridge:
         if bind:
             await asyncio.wait_for(fridge.bind(), 30)
@@ -462,6 +510,7 @@ async def run(addr: str, bind: bool, poll: bool, pollinterval: int):
 
 
 def main():
+    '''fridge.py entry point when run as a script'''
     parser = argparse.ArgumentParser(
         prog='fridge.py',
         description='Fridge monitor for Alpicool / Brass Monkey fridges'

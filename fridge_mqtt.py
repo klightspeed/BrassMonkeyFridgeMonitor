@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 
+'''fridge_mqtt.py
+
+Monitors a given Alpicool compatible fridge and sends
+status updates to an MQTT broker
+'''
+
 import asyncio
 import argparse
 import logging
@@ -12,6 +18,8 @@ from fridge import Fridge, FridgeData
 
 
 def publish_offline(mqttc: mqtt.Client, addr: str):
+    '''Publish online=false to the MQTT broker'''
+
     mqttc.publish(f"fridge/{addr}/online", False)
 
 
@@ -20,6 +28,8 @@ def publish_status(mqttc: mqtt.Client,
                    data: FridgeData,
                    previous_data: Optional[FridgeData]
                   ):
+    '''Publish the current fridge status to the MQTT broker'''
+
     if previous_data is None:
         mqttc.publish(f"fridge/{addr}/online", True)
 
@@ -35,6 +45,7 @@ async def run(addr: str,
               pollinterval: int,
               mqttc: mqtt.Client
              ):
+    '''Run the write-notify loop'''
     # pylint: disable=R0801
     async with Fridge(addr) as fridge:
         if bind:
@@ -63,6 +74,7 @@ async def run(addr: str,
 
 
 def main():
+    '''fridge_mqtt.py entry point when run as a script'''
     # pylint: disable=R0801
     parser = argparse.ArgumentParser(
         prog='fridge_mqtt.py',
@@ -120,9 +132,8 @@ def main():
         asyncio.run(run(args.address, args.bind, args.loop, args.pollinterval, mqttc))
     except KeyboardInterrupt:
         sys.stderr.write('Exiting\n')
-        return
     finally:
-        mqttc.publish(f'fridge/{args.address}/online', False)
+        publish_offline(mqttc, args.address)
         mqttc.loop_stop()
 
 
