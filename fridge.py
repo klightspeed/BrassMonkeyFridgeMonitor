@@ -498,7 +498,7 @@ async def run(addr: str, bind: bool, poll: bool, pollinterval: int):
 
         logger.info('Fridge BLE device found - attempting to connect')
 
-        async with Fridge(fridgeDev) as fridge:
+        async with Fridge(fridge_dev) as fridge:
             if bind:
                 await asyncio.wait_for(fridge.bind(), 30)
 
