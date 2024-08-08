@@ -19,7 +19,7 @@ from typing import Optional, Union, Callable, Any
 
 from dataclasses import dataclass
 
-from bleak import BleakClient
+from bleak import BleakClient, BleakScanner
 from bleak.exc import BleakError
 from bleak.backends.device import BLEDevice
 from bleak.backends.characteristic import BleakGATTCharacteristic
@@ -489,24 +489,33 @@ def print_fridge_data(data: FridgeData):
 
 async def run(addr: str, bind: bool, poll: bool, pollinterval: int):
     '''Run the write-notify loop'''
-    async with Fridge(addr) as fridge:
-        if bind:
-            await asyncio.wait_for(fridge.bind(), 30)
+    while True:
+        fridgeDev = await BleakScanner.find_device_by_address(addr)
 
-        fridge.on_query_response = print_fridge_data
+        if fridgeDev is None:
+            logger.info('Fridge BLE device not found')
+            continue
 
-        try:
-            await asyncio.wait_for(fridge.query(), 5)
-        except TimeoutError:
-            pass
-
-        while poll:
-            await asyncio.sleep(pollinterval)
-
+        logger.info('Fridge BLE device found - attempting to connect')
+        
+        async with Fridge(fridgeDev) as fridge:
+            if bind:
+                await asyncio.wait_for(fridge.bind(), 30)
+    
+            fridge.on_query_response = print_fridge_data
+    
             try:
                 await asyncio.wait_for(fridge.query(), 5)
             except TimeoutError:
                 pass
+    
+            while poll:
+                await asyncio.sleep(pollinterval)
+    
+                try:
+                    await asyncio.wait_for(fridge.query(), 5)
+                except TimeoutError:
+                    pass
 
 
 def main():
