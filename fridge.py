@@ -247,7 +247,7 @@ def encode_set_command(data: FridgeData) -> bytes:
     # pylint: disable=no-else-return
     if data.unit2 is None:
         return create_packet(struct.pack(
-            '>??BBbbbbBBbbbb',
+            '>B??BBbbbbBBbbbb',
             FridgeCommand.Set,
             data.controls_locked, data.powered_on, data.run_mode, data.battery_saver,
             data.unit1.target_temperature, data.max_selectable_temperature,
@@ -258,7 +258,7 @@ def encode_set_command(data: FridgeData) -> bytes:
         ))
     else:
         return create_packet(struct.pack(
-            '>??BBbbbbBBbbbbbxxbbbbbxxx',
+            '>B??BBbbbbBBbbbbbxxbbbbbxxx',
             FridgeCommand.Set,
             data.controls_locked, data.powered_on, data.run_mode, data.battery_saver,
             data.unit1.target_temperature, data.max_selectable_temperature,
