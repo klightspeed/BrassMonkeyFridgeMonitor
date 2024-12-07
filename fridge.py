@@ -65,6 +65,7 @@ class FridgeTemperatureUnit(int, Enum):
     '''Fridge temperature unit'''
     # pylint: disable=invalid-name
     Celsius = 0
+    Fahrenheit = 1
     Farenheit = 1
 
 
