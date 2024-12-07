@@ -77,7 +77,7 @@ Offset | Name | Description
 0x06   | tempMin | Minimum selectable temperature
 0x07   | leftRetDiff | Unit 1 (Left) hysteresis
 0x08   | startDelay | Start Delay (minutes)
-0x09   | unit | Temperature unit (Celsius, Farenheit)
+0x09   | unit | Temperature unit (0=Celsius, 1=Fahrenheit)
 0x0A   | leftTCHot | Unit 1 (Left) temperature correction when at or above -6°C
 0x0B   | leftTCMid | Unit 1 (Left) temperature correction when between -12°C and -6°C
 0x0C   | leftTCCold | Unit 1 (Left) temperature correction when below -12°C
@@ -117,7 +117,7 @@ Offset | Name | Description
 0x06   | tempMin | Minimum selectable temperature
 0x07   | leftRetDiff | Unit 1 (Left) hysteresis
 0x08   | startDelay | Start Delay (minutes)
-0x09   | unit | Temperature unit (Celsius, Farenheit)
+0x09   | unit | Temperature unit (0=Celsius, 1=Fahrenheit)
 0x0A   | leftTCHot | Unit 1 (Left) temperature correction when at or above -6°C
 0x0B   | leftTCMid | Unit 1 (Left) temperature correction when between -12°C and -6°C
 0x0C   | leftTCCold | Unit 1 (Left) temperature correction when below -12°C
