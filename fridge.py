@@ -243,11 +243,12 @@ def get_packet_data(data: bytes) -> bytes:
         return None
 
     csum = struct.unpack_from('>H', data[-2:])[0]
+    calcsum = sum(int(v) for v in data[:-2])
 
-    if csum != sum(int(v) for v in data[:-2]):
+    if csum not in (calcsum, calcsum * 2):
         logger.warning(
             'Invalid checksum: %04X != %04X',
-            sum(int(v) for v in data[:-2]),
+            calcsum,
             csum,
             extra={ data: data.hex() }
         )
