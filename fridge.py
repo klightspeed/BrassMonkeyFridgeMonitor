@@ -214,21 +214,26 @@ def create_packet(data: bytes) -> bytes:
 
 def get_packet_data(data: bytes) -> bytes:
     '''Extract the data from a packet'''
+
     if len(data) <= 2:
-        raise ValueError('Packet is too small')
+        logger.warning('Packet is too small: %d bytes', len(data), extra={ data: data.hex() })
+        return None
 
     if data[:2] != b'\xFE\xFE':
-        raise ValueError('Invalid frame header')
+        logger.warning('Invalid frame header: %s', data[:2].hex(), extra={ data: data.hex() })
+        return None
 
     pktlen = struct.unpack_from('B', data, 2)[0]
 
     if pktlen != len(data) - 3:
-        raise ValueError('Content length does not match')
+        logger.warning('Content length does not match: %d != %d', len(data) - 3, pktlen, extra={ data: data.hex() })
+        return None
 
     csum = struct.unpack_from('>H', data[-2:])[0]
 
     if csum != sum(int(v) for v in data[:-2]):
-        raise ValueError('Invalid checksum')
+        logger.warning('Invalid checksum: %04X != %04X', sum(int(v) for v in data[:-2]), csum, extra={ data: data.hex() })
+        return None
 
     return data[3:-2]
 
@@ -355,7 +360,7 @@ class Fridge:
         # pylint: disable=unused-argument
         data = get_packet_data(pkt)
 
-        if len(data) < 2:
+        if data is None or len(data) < 2:
             return
 
         cmd = struct.unpack_from('B', data, 0)[0]
