@@ -216,23 +216,41 @@ def get_packet_data(data: bytes) -> bytes:
     '''Extract the data from a packet'''
 
     if len(data) <= 2:
-        logger.warning('Packet is too small: %d bytes', len(data), extra={ data: data.hex() })
+        logger.warning(
+            'Packet is too small: %d bytes',
+            len(data),
+            extra={ data: data.hex() }
+        )
         return None
 
     if data[:2] != b'\xFE\xFE':
-        logger.warning('Invalid frame header: %s', data[:2].hex(), extra={ data: data.hex() })
+        logger.warning(
+            'Invalid frame header: %s',
+            data[:2].hex(),
+            extra={ data: data.hex() }
+        )
         return None
 
     pktlen = struct.unpack_from('B', data, 2)[0]
 
     if pktlen != len(data) - 3:
-        logger.warning('Content length does not match: %d != %d', len(data) - 3, pktlen, extra={ data: data.hex() })
+        logger.warning(
+            'Content length does not match: %d != %d',
+            len(data) - 3,
+            pktlen,
+            extra={ data: data.hex() }
+        )
         return None
 
     csum = struct.unpack_from('>H', data[-2:])[0]
 
     if csum != sum(int(v) for v in data[:-2]):
-        logger.warning('Invalid checksum: %04X != %04X', sum(int(v) for v in data[:-2]), csum, extra={ data: data.hex() })
+        logger.warning(
+            'Invalid checksum: %04X != %04X',
+            sum(int(v) for v in data[:-2]),
+            csum,
+            extra={ data: data.hex() }
+        )
         return None
 
     return data[3:-2]
