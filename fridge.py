@@ -219,7 +219,7 @@ def get_packet_data(data: bytes) -> bytes:
         logger.warning(
             'Packet is too small: %d bytes',
             len(data),
-            extra={ data: data.hex() }
+            extra={ 'data': data.hex() }
         )
         return None
 
@@ -227,7 +227,7 @@ def get_packet_data(data: bytes) -> bytes:
         logger.warning(
             'Invalid frame header: %s',
             data[:2].hex(),
-            extra={ data: data.hex() }
+            extra={ 'data': data.hex() }
         )
         return None
 
@@ -238,7 +238,7 @@ def get_packet_data(data: bytes) -> bytes:
             'Content length does not match: %d != %d',
             len(data) - 3,
             pktlen,
-            extra={ data: data.hex() }
+            extra={ 'data': data.hex() }
         )
         return None
 
@@ -250,7 +250,7 @@ def get_packet_data(data: bytes) -> bytes:
             'Invalid checksum: %04X != %04X',
             calcsum,
             csum,
-            extra={ data: data.hex() }
+            extra={ 'data': data.hex() }
         )
         return None
 
