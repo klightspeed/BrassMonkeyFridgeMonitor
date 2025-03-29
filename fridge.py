@@ -205,14 +205,14 @@ def decode_fridge_data(data: Union[bytes, bytearray]) -> FridgeData:
     )
 
 
-def create_packet(data: bytes) -> bytes:
+def create_packet(data: Union[bytes, bytearray]) -> bytes:
     '''Create a packet for sending to a fridge'''
     pkt = b'\xFE\xFE' + struct.pack('B', len(data) + 2) + data
     pkt += struct.pack('>H', sum(int(v) for v in pkt))
     return pkt
 
 
-def get_packet_data(data: bytes) -> bytes:
+def get_packet_data(data: Union[bytes, bytearray]) -> bytes:
     '''Extract the data from a packet'''
 
     if len(data) <= 2:
