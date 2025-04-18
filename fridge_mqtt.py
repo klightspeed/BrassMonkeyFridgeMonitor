@@ -150,7 +150,7 @@ def main():
     if args.mqtt_socket is not None:
         mqtt_transport = 'unix'
         mqtt_host = args.mqtt_socket
-    
+
     mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, transport=mqtt_transport)
 
     mqttc.connect(mqtt_host, args.mqtt_port, 60)
