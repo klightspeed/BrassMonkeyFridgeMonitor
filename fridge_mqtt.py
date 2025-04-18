@@ -78,12 +78,19 @@ def main():
     # pylint: disable=R0801
     parser = argparse.ArgumentParser(
         prog='fridge_mqtt.py',
-        description='Fridge monitor for Alpicool / Brass Monkey fridges'
+        description='Fridge monitor for Alpicool / Brass Monkey fridges',
+        add_help=False
     )
 
     parser.add_argument(
         'address',
         help='Bluetooth address of fridge'
+    )
+    parser.add_argument(
+        '-?',
+        '--help',
+        action='help',
+        help='Show this help message and exit'
     )
     parser.add_argument(
         '-b',
