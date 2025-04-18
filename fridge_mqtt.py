@@ -111,12 +111,26 @@ def main():
         default=10,
         help='Poll interval in seconds (default: 10)'
     )
-    parser.add_argument(
+    host_group = parser.add_mutually_exclusive_group(required=True)
+    host_group.add_argument(
         '-h',
         '--mqtt-host',
         type = str,
-        required=True,
         help='MQTT host name / ip address'
+    )
+    host_group.add_argument(
+        '-s',
+        '--mqtt-socket',
+        type = str,
+        help='MQTT unix socket path'
+    )
+    parser.add_argument(
+        '-T',
+        '--mqtt-transport',
+        type = str,
+        choices = ['tcp', 'websockets', 'unix'],
+        default = 'tcp',
+        help='MQTT transport'
     )
     parser.add_argument(
         '-p',
@@ -130,9 +144,16 @@ def main():
 
     logging.basicConfig()
 
-    mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+    mqtt_transport = args.mqtt_transport
+    mqtt_host = args.mqtt_host
 
-    mqttc.connect(args.mqtt_host, args.mqtt_port, 60)
+    if args.mqtt_socket is not None:
+        mqtt_transport = 'unix'
+        mqtt_host = args.mqtt_socket
+    
+    mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, transport=mqtt_transport)
+
+    mqttc.connect(mqtt_host, args.mqtt_port, 60)
 
     mqttc.loop_start()
 
