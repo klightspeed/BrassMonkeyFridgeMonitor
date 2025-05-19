@@ -382,7 +382,7 @@ class Fridge:
 
         if self.verbose:
             sys.stderr.write(f'Recv: {sender}: {pkt}\n')
-        
+
         # pylint: disable=unused-argument
         data = get_packet_data(pkt)
 
@@ -442,7 +442,7 @@ class Fridge:
 
         if self.verbose:
             sys.stderr.write(f'Send: {pkt}\n')
-        
+
         await self.client.write_gatt_char(self.command_characteristic, pkt, response = True)
 
     async def _send_bind_command(self):
