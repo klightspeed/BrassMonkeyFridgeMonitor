@@ -320,6 +320,7 @@ class Fridge:
     command_characteristic: Optional[BleakGATTCharacteristic] = None
     notify_characteristic: Optional[BleakGATTCharacteristic] = None
     client: BleakClient = None
+    verbose: bool = False
 
     _bind_result_future: Optional[Future[int]] = None
     _query_result_future: Optional[Future[FridgeData]] = None
@@ -328,11 +329,13 @@ class Fridge:
     _set_unit1_result_future: Optional[Future[FridgeData]] = None
     _set_unit2_result_future: Optional[Future[FridgeData]] = None
 
-    def __init__(self, client: Union[BleakClient, BLEDevice, str]):
+    def __init__(self, client: Union[BleakClient, BLEDevice, str], verbose: bool):
         if isinstance(client, BleakClient):
             self.client = client
         else:
             self.client = BleakClient(client)
+
+        self.verbose = verbose
 
     async def connect(self):
         '''Connect to the BLE fridge'''
@@ -376,6 +379,10 @@ class Fridge:
 
     def _notify_callback(self, sender: BleakGATTCharacteristic, pkt: bytearray):
         '''Callback for BLE notify'''
+
+        if self.verbose:
+            sys.stderr.write(f'Recv: {sender}: {pkt}\n')
+        
         # pylint: disable=unused-argument
         data = get_packet_data(pkt)
 
@@ -432,6 +439,10 @@ class Fridge:
 
     async def _send_command(self, pkt: bytes):
         '''Send a command to the BLE fridge'''
+
+        if self.verbose:
+            sys.stderr.write(f'Send: {pkt}\n')
+        
         await self.client.write_gatt_char(self.command_characteristic, pkt, response = True)
 
     async def _send_bind_command(self):
@@ -512,7 +523,7 @@ def print_fridge_data(data: FridgeData):
     print(json.dumps(data.to_dict()))
 
 
-async def run(addr: str, bind: bool, poll: bool, pollinterval: int):
+async def run(addr: str, bind: bool, poll: bool, pollinterval: int, verbose: bool):
     '''Run the write-notify loop'''
     while True:
         fridge_dev = await BleakScanner.find_device_by_address(addr)
@@ -523,7 +534,7 @@ async def run(addr: str, bind: bool, poll: bool, pollinterval: int):
 
         logger.info('Fridge BLE device found - attempting to connect')
 
-        async with Fridge(fridge_dev) as fridge:
+        async with Fridge(fridge_dev, verbose) as fridge:
             if bind:
                 await asyncio.wait_for(fridge.bind(), 30)
 
@@ -567,6 +578,12 @@ def main():
         help='Poll at regular intervals (default: query once)'
     )
     parser.add_argument(
+        '-v',
+        '--verbose',
+        action='store_true',
+        help='Write command and notification frames to the console'
+    )
+    parser.add_argument(
         '-t',
         '--pollinterval',
         type = int,
@@ -579,7 +596,7 @@ def main():
     logging.basicConfig()
 
     try:
-        asyncio.run(run(args.address, args.bind, args.loop, args.pollinterval))
+        asyncio.run(run(args.address, args.bind, args.loop, args.pollinterval, args.verbose))
     except KeyboardInterrupt:
         sys.stderr.write('Exiting\n')
 
