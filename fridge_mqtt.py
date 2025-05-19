@@ -39,8 +39,7 @@ def publish_status(mqttc: mqtt.Client,
         mqttc.publish(f'fridge/{addr}/state', info)
 
 
-#noqa: R0913 R0917
-async def run(addr: str,
+async def run(addr: str,  # noqa: R0913 R0917
               bind: bool,
               poll: bool,
               pollinterval: int,
