@@ -39,12 +39,13 @@ def publish_status(mqttc: mqtt.Client,
         mqttc.publish(f'fridge/{addr}/state', info)
 
 
+#noqa: R0913 R0917
 async def run(addr: str,
               bind: bool,
               poll: bool,
               pollinterval: int,
               mqttc: mqtt.Client,
-              verbose: bool
+              verbose: bool = False
              ):
     '''Run the write-notify loop'''
     # pylint: disable=R0801
