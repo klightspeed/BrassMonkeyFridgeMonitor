@@ -39,7 +39,8 @@ def publish_status(mqttc: mqtt.Client,
         mqttc.publish(f'fridge/{addr}/state', info)
 
 
-async def run(addr: str,  # noqa: R0913 R0917
+#pylint: disable-next=too-many-arguments,too-many-positional-arguments
+async def run(addr: str,
               bind: bool,
               poll: bool,
               pollinterval: int,
