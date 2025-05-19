@@ -43,11 +43,12 @@ async def run(addr: str,
               bind: bool,
               poll: bool,
               pollinterval: int,
-              mqttc: mqtt.Client
+              mqttc: mqtt.Client,
+              verbose: bool
              ):
     '''Run the write-notify loop'''
     # pylint: disable=R0801
-    async with Fridge(addr) as fridge:
+    async with Fridge(addr, verbose) as fridge:
         if bind:
             await asyncio.wait_for(fridge.bind(), 30)
 
@@ -105,6 +106,12 @@ def main():
         help='Poll at regular intervals (default: query once)'
     )
     parser.add_argument(
+        '-v',
+        '--verbose',
+        action='store_true',
+        help='Write command and notification frames to the console'
+    )
+    parser.add_argument(
         '-t',
         '--pollinterval',
         type = int,
@@ -158,7 +165,7 @@ def main():
     mqttc.loop_start()
 
     try:
-        asyncio.run(run(args.address, args.bind, args.loop, args.pollinterval, mqttc))
+        asyncio.run(run(args.address, args.bind, args.loop, args.pollinterval, mqttc, args.verbose))
     except KeyboardInterrupt:
         sys.stderr.write('Exiting\n')
     finally:
