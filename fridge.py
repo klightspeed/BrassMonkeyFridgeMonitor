@@ -328,6 +328,7 @@ class Fridge:
     _reset_result_future: Optional[Future[FridgeData]] = None
     _set_unit1_result_future: Optional[Future[FridgeData]] = None
     _set_unit2_result_future: Optional[Future[FridgeData]] = None
+    _last_packet: Optional[Union[bytes, bytearray]] = None
 
     def __init__(self, client: Union[BleakClient, BLEDevice, str], verbose: bool):
         if isinstance(client, BleakClient):
@@ -345,6 +346,9 @@ class Fridge:
                 break
             except BleakError as e:
                 if e.args[0] == 'failed to discover services, device disconnected':
+                    logger.info('Retrying after connect failed with: %s', e.args[0])
+                    continue
+                if e.args[0] == 'Could not get GATT services: Unreachable':
                     logger.info('Retrying after connect failed with: %s', e.args[0])
                     continue
                 raise
@@ -377,14 +381,73 @@ class Fridge:
     async def __aexit__(self, exc_type, exc_value, traceback):
         await self.disconnect()
 
+    def _get_packet_data(self, data: Union[bytes, bytearray]) -> bytes:
+        '''Extract the data from a packet'''
+
+        self._last_packet = None
+
+        if len(data) <= 2:
+            logger.warning(
+                'Packet is too small: %d bytes',
+                len(data),
+                extra={ 'data': data.hex() }
+            )
+            return None
+
+        if data[:2] != b'\xFE\xFE':
+            logger.warning(
+                'Invalid frame header: %s',
+                data[:2].hex(),
+                extra={ 'data': data.hex() }
+            )
+            return None
+
+        pktlen = struct.unpack_from('B', data, 2)[0]
+
+        if pktlen > len(data) - 3:
+            self._last_packet = data
+            return None
+
+        if pktlen != len(data) - 3:
+            logger.warning(
+                'Content length does not match: %d != %d',
+                len(data) - 3,
+                pktlen,
+                extra={ 'data': data.hex() }
+            )
+            return None
+
+        csum = struct.unpack_from('>H', data[-2:])[0]
+        calcsum = sum(int(v) for v in data[:-2])
+
+        if csum not in (calcsum, calcsum * 2):
+            logger.warning(
+                'Invalid checksum: %04X != %04X',
+                calcsum,
+                csum,
+                extra={ 'data': data.hex() }
+            )
+            return None
+
+        return data[3:-2]
+
+
     def _notify_callback(self, sender: BleakGATTCharacteristic, pkt: bytearray):
         '''Callback for BLE notify'''
 
         if self.verbose:
-            sys.stderr.write(f'Recv: {sender}: {pkt}\n')
+            sys.stderr.write(f'Recv: {sender}: {pkt.hex()}\n')
 
-        # pylint: disable=unused-argument
-        data = get_packet_data(pkt)
+        data = None
+
+        if self._last_packet is not None:
+            data = self._get_packet_data(self._last_packet + pkt)
+
+            if data is None and self._last_packet is None:
+                logger.warning('Failed to reassemble packet')
+
+        if data is None and self._last_packet is None:
+            data = self._get_packet_data(pkt)
 
         if data is None or len(data) < 2:
             return
@@ -441,7 +504,7 @@ class Fridge:
         '''Send a command to the BLE fridge'''
 
         if self.verbose:
-            sys.stderr.write(f'Send: {pkt}\n')
+            sys.stderr.write(f'Send: {pkt.hex()}\n')
 
         await self.client.write_gatt_char(self.command_characteristic, pkt, response = True)
 
@@ -534,24 +597,30 @@ async def run(addr: str, bind: bool, poll: bool, pollinterval: int, verbose: boo
 
         logger.info('Fridge BLE device found - attempting to connect')
 
-        async with Fridge(fridge_dev, verbose) as fridge:
-            if bind:
-                await asyncio.wait_for(fridge.bind(), 30)
+        try:
+            async with Fridge(fridge_dev, verbose) as fridge:
+                if bind:
+                    await asyncio.wait_for(fridge.bind(), 30)
 
-            fridge.on_query_response = print_fridge_data
-
-            try:
-                await asyncio.wait_for(fridge.query(), 5)
-            except TimeoutError:
-                pass
-
-            while poll:
-                await asyncio.sleep(pollinterval)
+                fridge.on_query_response = print_fridge_data
 
                 try:
                     await asyncio.wait_for(fridge.query(), 5)
                 except TimeoutError:
                     pass
+
+                while poll:
+                    await asyncio.sleep(pollinterval)
+
+                    try:
+                        await asyncio.wait_for(fridge.query(), 5)
+                    except TimeoutError:
+                        pass
+
+                return
+
+        except BleakError:
+            logger.info('Failed to connect to fridge')
 
 
 def main():
