@@ -26,7 +26,7 @@ This script uses [bleak](https://github.com/hbldh/bleak) as its bluetooth librar
 As this script uses bluetooth, you will need a working bluetooth adaptor.
 
 Platform-specific requirements are:
-* Python: At least Python 3.9 (required by bleak 1.1.1, and would require some type annotation and possibly other code changes)
+* Python: At least Python 3.9 (required by bleak 1.1.1, and would require some type annotation and possibly other code changes to support older versions)
 * MacOS: At least 10.11 (required by bleak 1.1.1, Python 3.9)
 * Windows: At least Windows 10 1709 (required by bleak 1.1.1)
 * Linux Bluetooth: At least BlueZ 5.55 (required by bleak 1.1.1)
