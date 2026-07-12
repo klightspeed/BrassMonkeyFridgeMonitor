@@ -25,6 +25,15 @@ This script uses [bleak](https://github.com/hbldh/bleak) as its bluetooth librar
 
 As this script uses bluetooth, you will need a working bluetooth adaptor.
 
+Platform-specific requirements are:
+* Python: At least Python 3.9 (required by bleak 1.1.1, and would require some type annotation and possibly other code changes)
+* MacOS: At least 10.11 (required by bleak 1.1.1, Python 3.9)
+* Windows: At least Windows 10 1709 (required by bleak 1.1.1)
+* Linux Bluetooth: At least BlueZ 5.55 (required by bleak 1.1.1)
+* Ubuntu: Python 3.9+ and BlueZ 5.55+ are available in Ubuntu 22.04 (Jammy Jellyfish) and later
+* Debian: Python 3.9+ and BlueZ 5.55+ are available in Debian 11 (Bullseye) and later
+* Fedora: Python 3.9+ and BlueZ 5.55+ have been avaiable since Fedora 33
+
 ## Technical
 
 This script was put together after extracting the javascript from version 2.0.0 of the Alpicool CAR FRIDGE FREEZER android app (the current 2.2.9 version has the javascript compiled into Hermes bytecode).
@@ -43,26 +52,37 @@ My fridge has a bluetooth device name of `WT-0001`, and the app also looks for b
 
 ### Command and notification structure:
 
+Header:
+
 Offset  | Length  | Description
 --------|---------|------------
 0x00    | 2       | Frame header (FE FE)
 0x02    | 1       | Data length
+
+Data:
+
+Offset  | Length  | Description
+--------|---------|------------
 0x03    | 1       | Command / Response code
 0x04    | len - 3 | Command / Response data
-len - 2 | 2       | Checksum (big-endian sum of all other bytes)
+len + 1 | 2       | Checksum (big-endian 16-bit sum over all bytes in the packet (including header) with checksum field set to 0)
+
+This is almost certainly a bluetooth interface to a serial interface, with command packets -> TxD and notify packets -> RxD. This could also explain why some refrigerators have split notify packets.
 
 ### Command / Response codes:
 
 Code | Name | Description
 -----|------|------------
 0x00 | bind | Bind (Fridge displays APP and sends a bind response after settings button is pressed)
-0x01 | query | Query
-0x02 | setOther | Set
-0x04 | reset | Reset
-0x05 | setLeft | Set Unit 1 (Left) Target
-0x06 | setRight | Set Unit 2 (Right) Target
+0x01 | query | Query current parameters and status
+0x02 | setOther | Set parameters
+0x04 | reset | Reset parameters
+0x05 | setLeft | Set Unit 1 (Left) target temperature (command and response data is the signed 8-bit integer temperature in the configured temperature units)
+0x06 | setRight | Set Unit 2 (Right) target temperature (command and response data is the signed 8-bit integer temperature in the configured temperature units)
 
 ### Fridge Query Data structure:
+
+This structure is sent by the refrigerator controller in response to a query and setOther commands.
 
 All temperature values are signed 8-bit integers represented in the selected temperature unit
 
@@ -103,6 +123,8 @@ Offset | Name | Description
 0x1B   | runningStatus | Running Status (Unknown - I don't have a dual-zone fridge to test with)
 
 ### Fridge Set Data structure
+
+This structure is sent to the refrigerator controller in the set command
 
 All temperature values are signed 8-bit integers represented in the selected temperature unit
 
