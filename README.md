@@ -36,7 +36,7 @@ Platform-specific requirements are:
 
 ## Technical
 
-This script was put together after extracting the javascript from version 2.0.0 of the Alpicool CAR FRIDGE FREEZER android app (the current 2.2.9 version has the javascript compiled into Hermes bytecode).
+This script was put together after capturing the bluetooth traffic between the Alpicool CAR FRIDGE FREEZER android app and the refrigerator, then extracting the javascript from version 2.0.0 of that app to determine the exact packet structure (the current at the time 2.2.9 version has the javascript compiled into Hermes bytecode).
 
 The app enables notifications on characteristic 0x1236 of GATT service 0x1234, and sends commands on characteristic 0x1235 of GATT service 0x1234
 
