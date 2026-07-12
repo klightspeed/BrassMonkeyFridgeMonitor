@@ -88,10 +88,10 @@ All temperature values are signed 8-bit integers represented in the selected tem
 
 Offset | Name | Description
 -------|------|------------
-0x00   | locked | Fridge controls locked (boolean)
-0x01   | poweredOn | Fridge switched on (boolean)
-0x02   | runMode | Fridge running mode (Max, Eco)
-0x03   | batSaver | Low voltage cutout level (Low, Mid, High)
+0x00   | locked | Fridge controls locked (0=Unlocked, 1=Locked)
+0x01   | poweredOn | Fridge switched on (0=Off, 1=On)
+0x02   | runMode | Fridge running mode (0=Max, 1=Eco)
+0x03   | batSaver | Low voltage cutout level (0=Low, 1=Mid, 2=High)
 0x04   | leftTarget | Unit 1 (Left) target temperature
 0x05   | tempMax | Maximum selectable temperature
 0x06   | tempMin | Minimum selectable temperature
@@ -104,8 +104,8 @@ Offset | Name | Description
 0x0D   | leftTCHalt | Unit 1 (Left) temperature correction when shut down
 0x0E   | leftCurrent | Unit 1 (Left) current temperature
 0x0F   | batPercent | Battery charge level in percent (likely voltage-based) (can be 0x7f if unknown)
-0x10   | batVolInt | Integer portion of battery voltage
-0x11   | batVolDec | Decimal portion of battery voltage
+0x10   | batVolInt | Integer portion of battery voltage in volts
+0x11   | batVolDec | Decimal portion of battery voltage in tenths of a volt
 
 For dual-zone fridges:
 
@@ -130,10 +130,10 @@ All temperature values are signed 8-bit integers represented in the selected tem
 
 Offset | Name | Description
 -------|------|------------
-0x00   | locked | Fridge controls locked (boolean)
-0x01   | poweredOn | Fridge switched on (boolean)
-0x02   | runMode | Fridge running mode (Max, Eco)
-0x03   | batSaver | Low voltage cutout level (Low, Mid, High)
+0x00   | locked | Fridge controls locked (0=Unlocked, 1=Locked)
+0x01   | poweredOn | Fridge switched on (0=Off, 1=On)
+0x02   | runMode | Fridge running mode (0=Max, 1=Eco)
+0x03   | batSaver | Low voltage cutout level (0=Low, 1=Mid, 2=High)
 0x04   | leftTarget | Unit 1 (Left) target temperature
 0x05   | tempMax | Maximum selectable temperature
 0x06   | tempMin | Minimum selectable temperature
@@ -163,7 +163,7 @@ Offset | Name | Description
 
 ### App Command flow
 
-When connecting to a fridge, the app sends a bind command and waits for a bind notify message to confirm that you are connecting to the right fridge.
+When connecting to a fridge, the app sends a bind command and waits for a bind notify message to confirm that you are connecting to the correct fridge.
 
 ```
 2023-09-05 23:05:12.827173  0x1235  Write   fe fe 03 00 01 ff
